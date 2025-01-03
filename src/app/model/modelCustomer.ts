@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { fail } from 'assert';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +10,16 @@ export const getCustomersByUserEmail = async (userEmail: string) => {
       where: { email: userEmail },
       include: {
         customers: {
-          include: { cards: true},
+          include: {
+            cards: {
+              select: {
+                id: true, 
+                number: true,
+                valiDate: true,
+                cvv: true,
+              },
+            },
+          },
         },
       },
     });

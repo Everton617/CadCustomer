@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { getCustomersByUserEmail } from '@/app/model/modelCustomer';
-import { createCard } from '@/app/model/modelCard';
+import { createCard, deleteCard } from '@/app/model/modelCard';
 import { CardSchema } from '@/lib/cardSchema';
 
 const prisma = new PrismaClient();
@@ -12,15 +12,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return handlePost(req, res);
     case 'GET':
       return handleGet(req, res);
+    case 'DELETE':
+      return handleDelete(req, res); 
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
-
-    const { customerId, cardData } = req.body;
-
+  const { customerId, cardData } = req.body;
 
   try {
     const validatedCardData = CardSchema.parse(cardData);
@@ -33,7 +33,6 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       return res.status(404).json({ error: "Cliente não encontrado." });
     }
 
-  
     const newCard = await prisma.card.create({
       data: {
         ...validatedCardData,
@@ -70,9 +69,36 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 
   } catch (error: unknown) {
     console.error(error);
-    
+
     if (error instanceof Error) {
       return res.status(500).json({ error: `Erro ao buscar clientes: ${error.message}` });
+    } else {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+}
+
+
+async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
+  const { cardId } = req.query;
+
+  if (!cardId || typeof cardId !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid card ID' });
+  }
+
+  try {
+    const deletedCard = await deleteCard(Number(cardId));
+
+    if (!deletedCard) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+
+    return res.status(200).json({ message: "Cartão excluído com sucesso.", card: deletedCard });
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      return res.status(500).json({ error: `Erro ao excluir o cartão: ${error.message}` });
     } else {
       return res.status(500).json({ error: 'Internal server error' });
     }

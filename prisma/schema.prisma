@@ -34,14 +34,14 @@ model Customer {
   address   String?
   userId    Int
   user      User      @relation(fields: [userId], references: [id])
-  cards     Card[]   
+  cards     Card[]
 }
 
 model Card {
   id         Int       @id @default(autoincrement())
-  number     String
+  number     String    @unique
   valiDate   String
   cvv        String
   customerId Int?
-   Customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }

@@ -11,7 +11,7 @@ import { RiFileExcel2Line } from "react-icons/ri";
 import { FiPlus } from "react-icons/fi";
 import * as XLSX from 'xlsx';
 import { useSession } from "next-auth/react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { customerSchema } from "@/lib/customerSchema";
@@ -38,7 +38,23 @@ import {
 import { FaRegCreditCard } from "react-icons/fa6";
 import { GrUpdate } from "react-icons/gr";
 import { FaTrashCan } from "react-icons/fa6";
-
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer"
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+import InputMask from 'react-input-mask';
 
 
 
@@ -59,7 +75,7 @@ interface Card {
     customerId: number
     id: number;
     number: string;
-    valiDate: Date;
+    valiDate: string;
     cvv: string;
 }
 
@@ -86,7 +102,7 @@ export default function MainTable() {
     const {
         register,
         handleSubmit,
-        reset,watch,
+        reset, watch, control,
         setValue,
         formState: { errors },
     } = useForm<CustomerFormValues>({
@@ -112,7 +128,7 @@ export default function MainTable() {
         }
 
         try {
-            customerSchema.parse(data); 
+            customerSchema.parse(data);
 
             const response = await fetch(`/api/customers?userEmail=${session?.user?.email}`, {
                 method: 'POST',
@@ -184,11 +200,10 @@ export default function MainTable() {
             fetchData()
         } catch (error: any) {
             console.error("Erro ao criar o cartão:", error.message);
-
             toast({
                 variant: "destructive",
-                title: "Erro!",
-                description: error.message || "Não foi possível adicionar o cartão.",
+                title: "Não foi possível adicionar o cartão!",
+                description: "Por favor verifique se este número do cartão já está cadastrado",
             });
         }
     };
@@ -303,7 +318,7 @@ export default function MainTable() {
                 throw new Error('Failed to fetch data');
             }
             const data = await response.json();
-           
+
 
 
             const fetchedCustomers = data.map((cliente: any) => ({
@@ -315,14 +330,17 @@ export default function MainTable() {
                 address: cliente.address,
                 phone: cliente.phone,
                 cards: cliente.cards.map((card: any) => ({
+                    id: card.id,
                     number: card.number,
                     valiDate: card.valiDate,
                     cvv: card.cvv
                 }))
             }));
 
+            console.log("Dados recebidos:", fetchedCustomers)
+
             setDados(fetchedCustomers);
-          
+
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -332,9 +350,9 @@ export default function MainTable() {
 
     const handleDelete = async (customerId: number) => {
         try {
-            
+
             const response = await fetch(`/api/customers?customerId=${customerId}`, {
-                method: 'DELETE', 
+                method: 'DELETE',
             });
 
             if (!response.ok) {
@@ -354,6 +372,40 @@ export default function MainTable() {
             alert('Falha ao excluir cliente');
         }
     };
+
+    const handleDeleteCard = async (cardId: number) => {
+
+        console.log("Excluindo cartão com ID:", cardId)
+
+        try {
+            const response = await fetch(`/api/cards?cardId=${cardId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Erro ao excluir cartão');
+            }
+
+            const data = await response.json();
+            toast({
+                variant: "success",
+                title: "Cartão excluído com sucesso!",
+                description: `Cartão excluído com sucesso: ${data.card.id}`,
+            });
+
+            fetchData();
+
+        } catch (error) {
+            console.error(error);
+            toast({
+                variant: "destructive",
+                title: "Falha ao excluir cartão",
+                description: error instanceof Error ? error.message : 'Erro desconhecido',
+            });
+        }
+    };
+
 
     const dadosFiltrados = useMemo(() => {
         return dados
@@ -399,24 +451,17 @@ export default function MainTable() {
                 <div className='pb-4'>
                     <h1 className="text-3xl font-bold">Clientes Cadastrados</h1>
                 </div>
-                <div className='flex gap-2 items-center'>
-                    <Input
-                        placeholder="Pesquisar..."
-                        value={pesquisa}
-                        onChange={(e) => setPesquisa(e.target.value)}
-                        className='max-w-[600px]'
-                    />
+                <div className='flex gap-2 p-4 items-center '>
+                    <div className='max-w-[600px] w-full'>
+                        <Input
+                            placeholder="Pesquisar..."
+                            value={pesquisa}
+                            onChange={(e) => setPesquisa(e.target.value)}
+                            className='max-w-[600px] '
+                        />
+                    </div>
                     <div className="flex space-x-2">
-                        <Select value={filtroNome} onValueChange={value => setFiltroNome(value === "Todos" ? "" : value)}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filtrar por nome" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {nomes.map(nome => (
-                                    <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+
 
 
                         <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
@@ -481,15 +526,15 @@ export default function MainTable() {
                                                             id="cep"
                                                             placeholder="Digite o CEP do cliente"
                                                             type="text"
-                                                           
+
                                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                         />
-                                                        
+
                                                         <div className='flex justify-end'>
                                                             <label
                                                                 htmlFor="cep"
                                                                 className="text-blue-500 underline mt-1 cursor-pointer block"
-                                                                onClick={(e) => fetchAddress((document.getElementById('cep') as HTMLInputElement).value)} 
+                                                                onClick={(e) => fetchAddress((document.getElementById('cep') as HTMLInputElement).value)}
                                                             >
                                                                 Buscar CEP
                                                             </label>
@@ -519,12 +564,19 @@ export default function MainTable() {
                                                     <label htmlFor="phone" className="block font-medium text-gray-700">
                                                         Telefone
                                                     </label>
-                                                    <Input
-                                                        id="phone"
-                                                        placeholder="Digite o telefone do Cliente"
-                                                        type="text"
-                                                        {...register("phone")}
-                                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                    <Controller
+                                                        name="phone"
+                                                        control={control}
+                                                        defaultValue=""
+                                                        render={({ field }) => (
+                                                            <InputMask
+                                                                {...field}
+                                                                mask="(99) 99999-9999"
+                                                                placeholder="Digite o telefone do Cliente"
+                                                                className="mt-1 block min-h-[37px] w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-indigo-500 text-base" // Adicione text-base para aumentar o tamanho do texto
+                                                                style={{ padding: '0.5rem', width: '100%' }}
+                                                            />
+                                                        )}
                                                     />
                                                     {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
                                                 </div>
@@ -570,23 +622,23 @@ export default function MainTable() {
                                     </Button>
                                 </TableHead>
                                 <TableHead>
-                                    <Button variant="ghost" onClick={() => toggleOrdenacao('email')}>
-                                        email <ArrowUpDown className="ml-2 h-4 w-4" />
+                                    <Button variant="ghost" >
+                                        email
                                     </Button>
                                 </TableHead>
                                 <TableHead>
-                                    <Button variant="ghost" onClick={() => toggleOrdenacao('birthDate')}>
-                                        Data de Nascimento <ArrowUpDown className="ml-2 h-4 w-4" />
+                                    <Button variant="ghost">
+                                        Data de Nascimento
                                     </Button>
                                 </TableHead>
                                 <TableHead>
-                                    <Button variant="ghost" onClick={() => toggleOrdenacao('address')}>
-                                        Endereço <ArrowUpDown className="ml-2 h-4 w-4" />
+                                    <Button variant="ghost" >
+                                        Endereço
                                     </Button>
                                 </TableHead>
                                 <TableHead>
-                                    <Button variant="ghost" onClick={() => toggleOrdenacao('phone')}>
-                                        Telefone <ArrowUpDown className="ml-2 h-4 w-4" />
+                                    <Button variant="ghost" >
+                                        Telefone
                                     </Button>
                                 </TableHead>
                                 <TableHead>
@@ -612,11 +664,59 @@ export default function MainTable() {
                                     <TableCell>{cliente.address}</TableCell>
                                     <TableCell>{cliente.phone}</TableCell>
                                     <TableCell>
-                                        {cliente.cards && Array.isArray(cliente.cards) && cliente.cards.length > 0 ? (
-                                            <p className='inline-flex items-center gap-1'>{cliente.cards.length} <FaRegCreditCard className='w-5 h-5' /></p>
-                                        ) : (
-                                            "Nenhum cartão cadastrado"
-                                        )}
+                                        <Drawer>
+                                            <DrawerTrigger>  {cliente.cards && Array.isArray(cliente.cards) && cliente.cards.length > 0 ? (
+                                                <div className='bg-black text-white px-2 py-1 rounded hover:bg-white hover:text-black hover:border hover:border-black'>
+                                                    <p className='inline-flex items-center gap-1'>{cliente.cards.length} <FaRegCreditCard className='w-5 h-5' /></p>
+                                                </div>
+                                            ) : (
+                                                "Nenhum cartão cadastrado"
+                                            )}</DrawerTrigger>
+                                            <DrawerContent>
+                                                <DrawerHeader>
+                                                    <DrawerTitle>Cartões Cadastrados em {cliente.name}</DrawerTitle>
+                                                    <DrawerDescription>
+                                                        <div className="space-y-4 max-h-[200px] overflow-y-auto max-w-[600px]">
+                                                            {cliente.cards && Array.isArray(cliente.cards) && cliente.cards.length > 0 ? (
+                                                                <Accordion type="single" collapsible className='bg-gray-100 max-w-[600px]'>
+                                                                    {cliente.cards.map((card, index) => (
+                                                                        <AccordionItem key={index} value={`item-${index}`}>
+                                                                            <AccordionTrigger>
+                                                                                <div className="flex items-center justify-between w-full">
+                                                                                    <p className="font-medium pl-2">Cartão terminado em {card.number.slice(-4)}</p>
+                                                                                </div>
+                                                                            </AccordionTrigger>
+                                                                            <AccordionContent >
+                                                                                <div className="space-y-2 pl-2">
+                                                                                    <p><strong>Número do Cartão:</strong> {card.number}</p>
+                                                                                    <p><strong>Titular:</strong> {cliente.name}</p>
+                                                                                    <p><strong>Expira em:</strong> {card.valiDate}</p>
+                                                                                    <div>
+                                                                                        <Button
+                                                                                            className='bg-red-500 hover:bg-red-600 text-white 
+                                                                                        hover-text-white px-4 py-2 rounded' variant="destructive"
+                                                                                            onClick={() => {
+                                                                                                handleDeleteCard(card.id);
+                                                                                            }}>Excluir Cartão</Button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </AccordionContent>
+                                                                        </AccordionItem>
+                                                                    ))}
+                                                                </Accordion>
+                                                            ) : (
+                                                                <p>Nenhum cartão cadastrado</p>
+                                                            )}
+                                                        </div>
+                                                    </DrawerDescription>
+                                                </DrawerHeader>
+                                                <DrawerFooter>
+                                                    <DrawerClose>
+                                                        <Button variant="outline">Cancel</Button>
+                                                    </DrawerClose>
+                                                </DrawerFooter>
+                                            </DrawerContent>
+                                        </Drawer>
                                     </TableCell>
                                     <TableCell>
                                         <Popover>
@@ -647,10 +747,10 @@ export default function MainTable() {
                                                                         <Input
                                                                             {...registerCard("number", {
                                                                                 onChange: (e) => {
-                                                                                    let value = e.target.value.replace(/\D/g, ""); 
-                                                                                    if (value.length > 16) value = value.slice(0, 16); 
-                                                                                    value = value.replace(/(\d{4})(?=\d)/g, "$1 "); 
-                                                                                    setValueCard("number", value.trim()); 
+                                                                                    let value = e.target.value.replace(/\D/g, "");
+                                                                                    if (value.length > 16) value = value.slice(0, 16);
+                                                                                    value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                                                                                    setValueCard("number", value.trim());
                                                                                 }
                                                                             })}
                                                                             maxLength={19}
@@ -674,16 +774,26 @@ export default function MainTable() {
                                                                         <Input
                                                                             {...registerCard("valiDate", {
                                                                                 onChange: (e) => {
-                                                                                    let value = e.target.value.replace(/\D/g, ""); 
-                                                                                    if (value.length > 4) value = value.slice(0, 4); 
-                                                                                    if (value.length >= 3) value = `${value.slice(0, 2)}/${value.slice(2)}`;
-                                                                                    setValueCard("valiDate", value); 
-                                                                                }
+                                                                                    let value = e.target.value;
+                                                                                    value = value.replace(/[^0-9/]/g, "");
+                                                                                    if (value.length > 5) value = value.slice(0, 5);
+
+                                                                                    if (value.length === 2 && !value.includes("/")) {
+                                                                                        value = `${value}/`;
+                                                                                    }
+                                                                                    setValueCard("valiDate", value);
+                                                                                },
                                                                             })}
-                                                                            maxLength={5} 
+                                                                            maxLength={5}
                                                                             placeholder="MM/AA"
                                                                         />
-                                                                        {cardErrors.valiDate && <p className='text-red-500 text-sm'>{cardErrors.valiDate.message}</p>}
+                                                                        {cardErrors.valiDate && (
+                                                                            <p className='text-red-500 text-sm'>
+                                                                                {cardErrors.valiDate.message === "A data de validade deve estar no formato MM/AA, com o mês entre 01 e 12 e o ano entre 25 e 35."
+                                                                                    ? "A data de validade deve estar no formato MM/AA, com o mês entre 01 e 12 e o ano entre 25 e 35."
+                                                                                    : cardErrors.valiDate.message}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
 
@@ -700,9 +810,9 @@ export default function MainTable() {
                                                 <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
                                                     <DialogTrigger
                                                         className='bg-black flex items-center justify-center text-[14px] text-white font-semibold min-w-[100px]  px-4 py-2 rounded-md'
-                                                        onClick={() => handleUpdateClick(cliente)} 
+                                                        onClick={() => handleUpdateClick(cliente)}
                                                     >
-                                                        Atualizar Cliente <GrUpdate className='ml-2'/>
+                                                        Atualizar Cliente <GrUpdate className='ml-2' />
                                                     </DialogTrigger>
                                                     <DialogContent className='min-w-[900px] min-h-[400px]'>
                                                         <DialogHeader>
@@ -763,10 +873,10 @@ export default function MainTable() {
                                                                                 id="cep"
                                                                                 placeholder="Digite o CEP do cliente"
                                                                                 type="text"
-                                                                               
+
                                                                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                                             />
-                                                                            
+
                                                                             <div className='flex justify-end'>
                                                                                 <label
                                                                                     htmlFor="cep"
@@ -798,12 +908,19 @@ export default function MainTable() {
                                                                             <label htmlFor="phone" className="block font-medium text-gray-700">
                                                                                 Telefone
                                                                             </label>
-                                                                            <Input
-                                                                                id="phone"
-                                                                                placeholder="Digite o telefone do Cliente"
-                                                                                type="text"
-                                                                                {...register("phone")}
-                                                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                                            <Controller
+                                                                                name="phone"
+                                                                                control={control}
+                                                                                defaultValue=""
+                                                                                render={({ field }) => (
+                                                                                    <InputMask
+                                                                                        {...field}
+                                                                                        mask="(99) 99999-9999"
+                                                                                        placeholder="Digite o telefone do Cliente"
+                                                                                        className="mt-1 block min-h-[37px] w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-indigo-500 text-base" // Adicione text-base para aumentar o tamanho do texto
+                                                                                        style={{ padding: '0.5rem', width: '100%' }}
+                                                                                    />
+                                                                                )}
                                                                             />
                                                                             {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
                                                                         </div>
@@ -838,7 +955,7 @@ export default function MainTable() {
 
                                                 <Button
                                                     className='bg-red-500 hover:bg-red-600 text-white hover-text-white px-4 py-2 rounded'
-                                                    onClick={() => handleDelete(cliente.id)}>Excluir Cliente <FaTrashCan/></Button>
+                                                    onClick={() => handleDelete(cliente.id)}>Excluir Cliente <FaTrashCan /></Button>
                                             </PopoverContent>
                                         </Popover>
                                     </TableCell>
