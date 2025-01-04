@@ -6,6 +6,7 @@ import { Menu, X } from 'lucide-react'
 import UserAccountnav from './UserAccountnav'
 import { useSession,signOut } from 'next-auth/react'
 import { CiLogout } from "react-icons/ci";
+import { FaCreditCard } from "react-icons/fa";
 
 
 const Navbar = () => {
@@ -24,10 +25,15 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center w-full">
-            <Link href="/" className="flex-shrink-0">
-              <p className="text-3xl font-bold text-gray-800 hover:text-blue-500 transition duration-300">
-                Protótipo
-              </p>
+            <Link href="/" className="flex-shrink-0 flex flex-row items-center gap-2">
+              <div>
+                <p className="text-3xl font-bold text-gray-800 hover:text-blue-500 transition duration-300">
+                CrediLink
+                </p>
+              </div>
+              <div>
+                <FaCreditCard className='w-10 h-10'/>
+              </div>
             </Link>
 
             <div className="hidden md:block flex-grow flex flex-row">
@@ -38,7 +44,7 @@ const Navbar = () => {
                       Início
                     </Link>
                     <Link href="/form" className="text-gray-800 hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium">
-                      Produtos
+                      Clientes
                     </Link>
                     <Link href="/servicos" className="text-gray-800 hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium">
                       Serviços
