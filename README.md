@@ -2,9 +2,8 @@ Passo a Passo para Rodar o Projeto
 1. Clonar o Repositório
 Primeiro, clone o repositório para sua máquina local:
 
-bash
-Copy
-git clone https://github.com/seu-usuario/nome-do-repositorio.git
+git clone https://github.com/seu-usuario/nome-do-repositorio.git](https://github.com/Everton617/CadCustomer)
+
 Navegue até a pasta do projeto:
 ```bash
 cd nome-do-repositorio
