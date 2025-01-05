@@ -30,5 +30,25 @@ pnpm run dev
 
 O projeto estará disponível em:
 
-
 http://localhost:3000
+
+
+ESTRUTURA DOS ENDPOINTS.
+
+Criar Cliente (POST /api/customers)
+
+Visualizar Clientes (GET /api/customers)
+
+Atualizar Cliente (PUT /api/customers)
+
+Excluir Cliente (DELETE /api/customers)
+
+- Associação de Cartões de Crédito
+  
+Criar Cartão (POST /api/cards)
+
+Visualizar Cartões associados a um cliente (GET /api/cards)
+
+Excluir Cartão (DELETE /api/cards)
+
+
