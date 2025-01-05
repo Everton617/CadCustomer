@@ -19,7 +19,7 @@ pnpm install
 Se você estiver usando o Prisma, é necessário gerar e aplicar as migrações para configurar o banco de dados. Execute os seguintes comandos:
 Gere as migrações:
 ```bash
-pnpm prisma migrate dev --name init
+pnpm prisma migrate dev --development init
 ```
 
 4. Rodar o Projeto
